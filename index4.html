@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>What Influences Cat Adoption?</title>
+</head>
+<body>
+    <a href="catadoption3.html">Variation 1</a>
+    <a href="catadoption4.html">Variation 2</a>
+    <a id="current" href="catadoption5.html">Variation 3</a>
+    <br><br>
+    <fieldset id="introduction">
+        <legend><b>What Influences Cat Adoption?</b></legend>
+        <p>All cats deserve to end up in a loving home. Some cats get adopted immediately, while others end up staying in the
+            shelter for years. So, what factors impact a cat's chances at being adopted? This data looks at 12,646 cats
+            from the Austin Animal Center to see if factors such as coat colour, age, sex, and intake reason impact
+            their length of stay in the shelter.
+        </p>
+    </fieldset>
+    <fieldset id="information">
+        <legend><b>Information</b></legend>
+        <h3>Show</h3>
+        <div>
+            <input class="toggle" type="radio" name="graphType" value="all" checked>All<br>
+            <input class="toggle" type="radio" name="graphType" value="average">Average<br>
+        </div>
+        <h3>Sort By</h3>
+        <select class="toggle" id="sort">
+            <option value="colour">Colour</option>
+            <option value="age">Age</option>
+            <option value="sex">Sex</option>
+            <option value="intake">Intake Reason</option>
+        </select>
+        <h5>Number of Cats</h5>
+        <svg id="legend" height=330 width=150></svg>
+    </fieldset>
+</body>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3-legend/1.1.0/d3-legend.js"></script>
+<script>
+    var margin = {top: 50, right: 20, bottom: 100, left: 130},
+        width = 1100 - margin.left - margin.right,
+        height = 700 - margin.top - margin.bottom;
+
+    var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    d3.csv("adoptions.csv").then(function(data) {
+
+        //make array for each coat colour's time spent in shelter
+        var groupByColorTime = d3.groups(data, d => d.color, d => d.time)
+
+        var colorTimeArray = []
+        for (var i = 0; i < 13; i++) {
+            for (var j = 0; j < 196; j++) {
+                if (typeof groupByColorTime[i][1][j] !== "undefined") {
+                    colorTimeArray.push(groupByColorTime[i][1][j][1][0])
+                }
+            }
+        }
+
+        //make array for each age's time spent in shelter
+        var groupByAgeTime = d3.groups(data, d => d.age, d => d.time)
+
+        var ageTimeArray = []
+        for (var i = 0; i < 29; i++) {
+            for (var j = 0; j < 167; j++) {
+                if (typeof groupByAgeTime[i][1][j] !== "undefined") {
+                    ageTimeArray.push(groupByAgeTime[i][1][j][1][0])
+                }
+            }
+        }
+
+        //make array for each sex's time spent in shelter
+        var groupBySexTime = d3.groups(data, d => d.sex, d => d.time)
+
+        var sexTimeArray = []
+        for (var i = 0; i < 2; i++) {
+            for (var j = 0; j < 270; j++) {
+                if (typeof groupBySexTime[i][1][j] !== "undefined") {
+                    sexTimeArray.push(groupBySexTime[i][1][j][1][0])
+                }
+            }
+        }
+
+        //make array for each intake reason's time spent in shelter
+        var groupByIntakeTime = d3.groups(data, d => d.intake, d => d.time)
+
+        var intakeTimeArray = []
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 252; j++) {
+                if (typeof groupByIntakeTime[i][1][j] !== "undefined") {
+                    intakeTimeArray.push(groupByIntakeTime[i][1][j][1][0])
+                }
+            }
+        }
+
+        //count number of cats for each category
+        var countByAge = d3.rollup(data, v => v.length, d => d.age);
+        var countByColor = d3.rollup(data, v => v.length, d => d.color);
+        var countBySex = d3.rollup(data, v => v.length, d => d.sex);
+        var countByIntake = d3.rollup(data, v => v.length, d => d.intake);
+
+        var countByColorTime = d3.rollup(data, v => v.length, d => d.color, d => d.time);
+        var countByAgeTime = d3.rollup(data, v => v.length, d => d.age, d => d.time);
+        var countBySexTime = d3.rollup(data, v => v.length, d => d.sex, d => d.time);
+        var countByIntakeTime = d3.rollup(data, v => v.length, d => d.intake, d => d.time);
+
+        var averageByAge = d3.rollup(data, v => d3.mean(v, d => d.time), d => d.age);
+        var averageByColor = d3.rollup(data, v => d3.mean(v, d => d.time), d => d.color);
+        var averageBySex = d3.rollup(data, v => d3.mean(v, d => d.time), d => d.sex);
+        var averageByIntake = d3.rollup(data, v => d3.mean(v, d => d.time), d => d.intake);
+
+        //colour scheme for coat colour
+        var colorSchemeByColor = d3.scaleOrdinal()
+            .domain(["Blue", "Black and White", "Colourpoint", "Black", "Cream Tabby", "Tortie",
+                "Gray Tabby", "White", "Torbie", "Silver Tabby", "Orange Tabby", "Calico", "Brown Tabby"])
+            .range([d3.interpolateCool(0.075), d3.interpolateCool(0.15), d3.interpolateCool(0.225), d3.interpolateCool(0.3),
+                d3.interpolateCool(0.375), d3.interpolateCool(0.45), d3.interpolateCool(0.525), d3.interpolateCool(0.6),
+                d3.interpolateCool(0.675), d3.interpolateCool(0.75), d3.interpolateCool(0.825), d3.interpolateCool(0.9), d3.interpolateCool(0.975)]);
+
+        //colour scheme for coat colour legend
+        var colorSchemeLegend = d3.scaleOrdinal()
+            .domain(["Kitten (1 - 6 mo.)", "Junior (6m - 2y)", "Adult (3y - 9y)", "Senior (10y - 18y)"])
+            .range([d3.interpolateBlues(0.15), d3.interpolateBlues(0.4), d3.interpolateBlues(0.7), d3.interpolateBlues(0.9)]);
+
+        //colour scheme for age
+        var colorSchemeByAge = d3.scaleOrdinal()
+            .domain(["1 month", "2 months", "3 months", "4 months", "5 months", "6 months", "7 months", "8 months",
+                "9 months", "10 months", "11 months", "1 year", "2 years", "3 years", "4 years", "5 years", "6 years", "7 years",
+                "8 years", "9 years", "10 years", "11 years", "12 years", "13 years", "14 years", "15 years", "16 years", "17 years", "18 years"])
+            .range([d3.interpolateBlues(0.15), d3.interpolateBlues(0.15), d3.interpolateBlues(0.15), d3.interpolateBlues(0.15), d3.interpolateBlues(0.15), d3.interpolateBlues(0.15),
+                d3.interpolateBlues(0.4), d3.interpolateBlues(0.4), d3.interpolateBlues(0.4), d3.interpolateBlues(0.4), d3.interpolateBlues(0.4),
+                d3.interpolateBlues(0.4), d3.interpolateBlues(0.4), d3.interpolateBlues(0.7), d3.interpolateBlues(0.7), d3.interpolateBlues(0.7),
+                d3.interpolateBlues(0.7), d3.interpolateBlues(0.7), d3.interpolateBlues(0.7), d3.interpolateBlues(0.7), d3.interpolateBlues(0.9),
+                d3.interpolateBlues(0.9), d3.interpolateBlues(0.9), d3.interpolateBlues(0.9), d3.interpolateBlues(0.9), d3.interpolateBlues(0.9), d3.interpolateBlues(0.9),
+                d3.interpolateBlues(0.9), d3.interpolateBlues(0.9)]);
+
+        //colour scheme for sex
+        var colorSchemeBySex = d3.scaleOrdinal()
+            .domain(["Female", "Male"])
+            .range([d3.interpolateCool(0.25), d3.interpolateCool(0.75)]);
+
+        //colour scheme for intake reason
+        var colorSchemeByIntake = d3.scaleOrdinal()
+            .domain(["Owner Surrender", "Stray", "Public Assist", "Euthanasia Request"])
+            .range([d3.interpolateCool(0.25), d3.interpolateCool(0.5), d3.interpolateCool(0.75), d3.interpolateCool(1)]);
+
+        // create a tooltip
+        var tooltip = d3.select("body")
+            .append("div")
+            .attr("class", "tooltip")
+            .style("visibility", "hidden")
+            .style("position", "absolute")
+            .style("z-index", "10")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("padding", "5px");
+
+        //colour, all nodes
+        var colourAll = function() {
+
+            //x axis, average time spent in shelter
+            var x = d3.scaleLog()
+                .domain([0.4, 1101])
+                .range([0, width]);
+
+            var xAxis = svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom().scale(x).tickSize(0).tickFormat(function(d) {
+                    if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                        return d
+                    } else if (d === 0.5) {
+                        return "< 1"
+                    }
+                }));
+
+            //y axis, colour
+            var y = d3.scaleBand()
+                .domain(["Blue", "Black and White", "Colourpoint", "Black", "Cream Tabby", "Tortie",
+                    "Gray Tabby", "White", "Torbie", "Silver Tabby", "Orange Tabby", "Calico", "Brown Tabby"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([1, 276])
+                .range([1, 50]);
+
+            //make circle sizing guide
+            var valuesToShow = [10, 150, 300]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 130)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 130)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Coat Colour")
+
+            // Add a clipPath: everything out of this area won't be drawn.
+            svg.append("defs").append("svg:clipPath")
+                .attr("id", "clip")
+                .append("svg:rect")
+                .attr("width", width)
+                .attr("height", height + 50)
+                .attr("x", 0)
+                .attr("y", -35);
+
+            var scatter = svg.append('g')
+                .attr("class", "graphStuff")
+                .attr("clip-path", "url(#clip)");
+
+            //add brushing
+            var brush = d3.brushX()
+                .extent( [ [0,0], [width,height] ] ) //initialize the brush area
+                .on("end", updateChart)
+
+            scatter
+                .append("g")
+                .attr("class", "brush")
+                .call(brush);
+
+            //add nodes to graph
+            scatter.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(colorTimeArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {
+                    return x(d.time)})
+                .attr("cy", function (d) {return y(d.color) + 20})
+                .attr("r", function (d) {return z(countByColorTime.get(d.color).get(d.time))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.5")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.color + '</u></b>' + '<br>' +
+                        '<b>' + countByColorTime.get(d.target.__data__.color).get(d.target.__data__.time) + '</b>' + " cat(s) " +
+                        "spent" + '<br>' + '<b>' + d.target.__data__.time + '</b>' + " day(s) in the shelter")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+
+            //code inspired by this tutorial: https://www.d3-graph-gallery.com/graph/interactivity_zoom.html
+            var idleTimeout
+            function idled() {idleTimeout = null;}
+
+            //updates chart with given brush boundaries
+            function updateChart() {
+                var extent = d3.brushSelection(this);
+
+                //if no selection, back to initial coordinate
+                if(!extent){
+                    if (!idleTimeout) return idleTimeout = setTimeout(idled, 350);
+                    x.domain([0.4, 1101])
+
+                    //update x axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                            return d
+                        } else if (d === 0) {
+                            return "< 1"
+                        }
+                    }));
+                    //otherwise update x axis
+                } else{
+                    x.domain([ x.invert(extent[0]), x.invert(extent[1]) ])
+                    scatter.select(".brush").call(brush.move, null) //removes the grey brush area as soon as the selection has been done
+
+                    //update x axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((d % 2 === 0) || d === 1) {
+                            return d
+                        } else if (d === 0.5) {
+                            return "< 1"
+                        }
+                    }));
+                }
+                scatter.selectAll("circle")
+                    .transition().duration(1000)
+                    .attr("cx", function (d) {return x(d.time)})
+                    .attr("cy", function (d) {return y(d.color) + 20})
+
+            }
+        }
+
+        //age, all nodes
+        var ageAll = function() {
+            //x axis, average time spent in shelter
+            var x = d3.scaleLog()
+                .domain([0.4, 1101])
+                .range([0, width]);
+
+            var xAxis = svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom().scale(x).tickSize(0).tickFormat(function(d) {
+                    if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                        return d
+                    } else if (d === 0.5) {
+                        return "< 1"
+                    }
+                }));
+
+            //y axis, age
+            var y = d3.scaleBand()
+                .domain(["1 month", "2 months", "3 months", "4 months", "5 months", "6 months", "7 months", "8 months",
+                    "9 months", "10 months", "11 months", "1 year", "2 years", "3 years", "4 years", "5 years", "6 years", "7 years",
+                    "8 years", "9 years", "10 years", "11 years", "12 years", "13 years", "14 years", "15 years", "16 years", "17 years", "18 years"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            var yAxis = svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([1, 489])
+                .range([1, 50]);
+
+            //make circle sizing guide
+            var valuesToShow = [10, 100, 500]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 120)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 120)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Age Upon Adoption")
+
+            // Add a clipPath: everything out of this area won't be drawn.
+            svg.append("defs").append("svg:clipPath")
+                .attr("id", "clip")
+                .append("svg:rect")
+                .attr("width", width)
+                .attr("height", height + 80)
+                .attr("x", 0)
+                .attr("y", 0);
+
+            var scatter = svg.append('g')
+                .attr("class", "graphStuff")
+                .attr("clip-path", "url(#clip)");
+
+            //add brushing
+            var brush = d3.brushX()
+                .extent( [ [0,0], [width,height] ] )
+                .on("end", updateChart) //
+
+            scatter
+                .append("g")
+                .attr("class", "brush")
+                .call(brush);
+
+            //add nodes on graph
+            scatter.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(ageTimeArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.time)})
+                .attr("cy", function (d) {return y(d.age) + 10})
+                .attr("r", function (d) {return z(countByAgeTime.get(d.age).get(d.time))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.5")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.age + '</u></b>' + '<br>' +
+                        '<b>' + countByAgeTime.get(d.target.__data__.age).get(d.target.__data__.time) + '</b>' + " cat(s) " +
+                        "spent" + '<br>' + '<b>' + d.target.__data__.time + '</b>' + " day(s) in the shelter")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+
+            var idleTimeout
+            function idled() { idleTimeout = null; }
+
+            //update the chart for given brush boundaries
+            function updateChart() {
+                var extent = d3.brushSelection(this);
+
+                //if no selection, back to initial coordinate
+                if(!extent){
+                    if (!idleTimeout) return idleTimeout = setTimeout(idled, 350);
+                    x.domain([0.4, 1101])
+
+                    //update x axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                            return d
+                        } else if (d === 0) {
+                            return "< 1"
+                        }
+                    }));
+                } else{
+                    x.domain([ x.invert(extent[0]), x.invert(extent[1]) ])
+                    scatter.select(".brush").call(brush.move, null) //removes the grey brush area as soon as the selection has been done
+
+                    //update x axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((d % 2 === 0) || d === 1) {
+                            return d
+                        } else if (d === 0.5) {
+                            return "< 1"
+                        }
+                    }));
+                }
+                scatter.selectAll("circle")
+                    .transition().duration(1000)
+                    .attr("cx", function (d) {return x(d.time)})
+                    .attr("cy", function (d) {return y(d.age) + 10})
+            }
+        }
+
+        //sex, all nodes
+        var sexAll = function() {
+            //x axis, average time spent in shelter
+            var x = d3.scaleLog()
+                .domain([0.4, 1101])
+                .range([0, width]);
+
+            var xAxis = svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom().scale(x).tickSize(0).tickFormat(function(d) {
+                    if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                        return d
+                    } else if (d === 0.5) {
+                        return "< 1"
+                    }
+                }));
+
+            //y axis, age
+            var y = d3.scaleBand()
+                .domain(["Female", "Male"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([1, 604])
+                .range([1, 50]);
+
+            //make circle sizing guide
+            var valuesToShow = [50, 150, 600]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 130)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 130)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Sex")
+
+            // Add a clipPath: everything out of this area won't be drawn.
+            svg.append("defs").append("svg:clipPath")
+                .attr("id", "clip")
+                .append("svg:rect")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("x", 0)
+                .attr("y", 0);
+
+            var scatter = svg.append('g')
+                .attr("class", "graphStuff")
+                .attr("clip-path", "url(#clip)");
+
+            //add brushing
+            var brush = d3.brushX()
+                .extent( [ [0,0], [width,height] ] )
+                .on("end", updateChart)
+
+            scatter
+                .append("g")
+                .attr("class", "brush")
+                .call(brush);
+
+            //add nodes to graph
+            scatter.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(sexTimeArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.time)})
+                .attr("cy", function (d) {return y(d.sex) + 137})
+                .attr("r", function (d) {return z(countBySexTime.get(d.sex).get(d.time))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.5")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.sex + '</u></b>' + '<br>' +
+                        '<b>' + countBySexTime.get(d.target.__data__.sex).get(d.target.__data__.time) + '</b>' + " cat(s) " +
+                        "spent" + '<br>' + '<b>' + d.target.__data__.time + '</b>' + " day(s) in the shelter")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+
+            var idleTimeout
+            function idled() { idleTimeout = null; }
+
+            //updates the chart for given boundaries
+            function updateChart() {
+                var extent = d3.brushSelection(this);
+
+                //if no selection, back to initial coordinate
+                if(!extent){
+                    if (!idleTimeout) return idleTimeout = setTimeout(idled, 350);
+                    x.domain([0.4, 1101])
+
+                    //update axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                            return d
+                        } else if (d === 0) {
+                            return "< 1"
+                        }
+                    }));
+                } else{
+                    x.domain([ x.invert(extent[0]), x.invert(extent[1]) ])
+                    scatter.select(".brush").call(brush.move, null) //remove the grey brush area as soon as the selection has been done
+
+                    //update axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((d % 2 === 0) || d === 1) {
+                            return d
+                        } else if (d === 0.5) {
+                            return "< 1"
+                        }
+                    }));
+                }
+                scatter.selectAll("circle")
+                    .transition().duration(1000)
+                    .attr("cx", function (d) {return x(d.time)})
+                    .attr("cy", function (d) {return y(d.sex) + 137})
+
+            }
+        }
+
+        //intake, all nodes
+        var intakeAll = function() {
+            //x axis, average time spent in shelter
+            var x = d3.scaleLog()
+                .domain([0.4, 1101])
+                .range([0, width]);
+
+            var xAxis = svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom().scale(x).tickSize(0).tickFormat(function(d) {
+                    if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                        return d
+                    } else if (d === 0.5) {
+                        return "< 1"
+                    }
+                }));
+
+            //y axis, intake reason
+            var y = d3.scaleBand()
+                .domain(["Owner Surrender", "Stray", "Public Assist", "Euthanasia Request"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([1, 872])
+                .range([1, 50]);
+
+            //make circle sizing guide
+            var valuesToShow = [50, 300, 900]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 130)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 130)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Intake Reason")
+
+            // Add a clipPath: everything out of this area won't be drawn.
+            svg.append("defs").append("svg:clipPath")
+                .attr("id", "clip")
+                .append("svg:rect")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("x", 0)
+                .attr("y", 0);
+
+            var scatter = svg.append('g')
+                .attr("class", "graphStuff")
+                .attr("clip-path", "url(#clip)");
+
+            //add brushing
+            var brush = d3.brushX()
+                .extent( [ [0,0], [width,height] ] )
+                .on("end", updateChart)
+
+            scatter
+                .append("g")
+                .attr("class", "brush")
+                .call(brush);
+
+            //add nodes to graph
+            scatter.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(intakeTimeArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.time)})
+                .attr("cy", function (d) {return y(d.intake) + 68})
+                .attr("r", function (d) {return z(countByIntakeTime.get(d.intake).get(d.time))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.5")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.intake + '</u></b>' + '<br>' +
+                        '<b>' + countByIntakeTime.get(d.target.__data__.intake).get(d.target.__data__.time) + '</b>' + " cat(s) " +
+                        "spent" + '<br>' + '<b>' + d.target.__data__.time + '</b>' + " day(s) in the shelter")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+
+            var idleTimeout
+            function idled() { idleTimeout = null; }
+
+            //update the chart for given boundaries
+            function updateChart() {
+                var extent = d3.brushSelection(this);
+
+                //if no selection, back to initial coordinate
+                if(!extent){
+                    if (!idleTimeout) return idleTimeout = setTimeout(idled, 350);
+                    x.domain([0.4, 1101])
+
+                    //update axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((((d % 2 === 0) && (d % 20 !== 10)) && (d % 200 !== 100)) || d === 1) {
+                            return d
+                        } else if (d === 0) {
+                            return "< 1"
+                        }
+                    }));
+                } else{
+                    x.domain([ x.invert(extent[0]), x.invert(extent[1]) ])
+                    scatter.select(".brush").call(brush.move, null) //remove the grey brush area as soon as the selection has been done
+
+                    //update axis and circle position
+                    xAxis.transition().duration(1000).call(d3.axisBottom(x).tickSize(0).tickFormat(function(d) {
+                        if ((d % 2 === 0) || d === 1) {
+                            return d
+                        } else if (d === 0.5) {
+                            return "< 1"
+                        }
+                    }));
+                }
+                scatter.selectAll("circle")
+                    .transition().duration(1000)
+                    .attr("cx", function (d) {return x(d.time)})
+                    .attr("cy", function (d) {return y(d.intake) + 68})
+
+            }
+        }
+
+        //colour, show averages
+        var colourAverage = function() {
+            averageColorArray = Array.from(
+                averageByColor,
+                ([key, value]) => ({key, value})
+            )
+
+            //x axis, average time spent in shelter
+            var x = d3.scaleLinear()
+                .domain([16, 48])
+                .range([0, width]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(-height).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(0));
+
+            //y axis, color
+            var y = d3.scaleBand()
+                .domain(["Blue", "Black and White", "Colourpoint", "Black", "Cream Tabby", "Tortie",
+                    "Gray Tabby", "White", "Torbie", "Silver Tabby", "Orange Tabby", "Calico", "Brown Tabby"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([44, 3138])
+                .range([5, 50]);
+
+            //circle size guide
+            var valuesToShow = [100, 1500, 3000]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 120)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 120)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Average Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Coat Colour")
+
+            //add nodes on graph
+            svg.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(averageColorArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.value)})
+                .attr("cy", function (d) {return y(d.key) + 20})
+                .attr("r", function (d) {return z(countByColor.get(d.key))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.7")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.key + '</u></b>' + "<br>" +
+                        '<b>' + countByColor.get(d.target.__data__.key) + '</b>' + " cats spent " +
+                        '<b>' + d3.format(".1f")(d.target.__data__.value) + '</b>' + " days" + "<br>" + " in the shelter on average")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+        }
+
+        //age, show averages
+        var ageAverage = function() {
+            averageAgeArray = Array.from(
+                averageByAge,
+                ([key, value]) => ({key, value})
+            )
+
+            //x axis, average time spent in shelter
+            var x = d3.scaleLinear()
+                .domain([0, 100])
+                .range([0, width]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(-height).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(0));
+
+            //y axis, age
+            var y = d3.scaleBand()
+                .domain(["1 month", "2 months", "3 months", "4 months", "5 months", "6 months", "7 months", "8 months",
+                    "9 months", "10 months", "11 months", "1 year", "2 years", "3 years", "4 years", "5 years", "6 years", "7 years",
+                    "8 years", "9 years", "10 years", "11 years", "12 years", "13 years", "14 years", "15 years", "16 years", "17 years", "18 years"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([2, 4928])
+                .range([5, 50]);
+
+            //circle size guide
+            var valuesToShow = [100, 1000, 5000]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 120)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 120)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Average Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Age Upon Adoption")
+
+            svg.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(averageAgeArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.value)})
+                .attr("cy", function (d) {return y(d.key) + 10})
+                .attr("r", function (d) {return z(countByAge.get(d.key))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.7")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.key + '</u></b>' + "<br>" +
+                        '<b>' + countByAge.get(d.target.__data__.key) + '</b>' + " cats spent " +
+                        '<b>' + d3.format(".1f")(d.target.__data__.value) + '</b>' + " days" + "<br>" + " in the shelter on average")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+        }
+
+        //sex, show averages
+        var sexAverage = function() {
+            averageSexArray = Array.from(
+                averageBySex,
+                ([key, value]) => ({key, value})
+            )
+
+            //x axis, average time spent in shelter
+            var x = d3.scaleLinear()
+                .domain([36, 37.5])
+                .range([0, width]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(-height).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(0));
+
+            //y axis, age
+            var y = d3.scaleBand()
+                .domain(["Female", "Male"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([5107, 7539])
+                .range([30, 50]);
+
+            //circle size guide
+            var valuesToShow = [5000, 7500]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 120)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 120)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Average Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Sex")
+
+            //add nodes to graph
+            svg.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(averageSexArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.value)})
+                .attr("cy", function (d) {return y(d.key) + 140})
+                .attr("r", function (d) {return z(countBySex.get(d.key))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.7")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.key + '</u></b>' + "<br>" +
+                        '<b>' + countBySex.get(d.target.__data__.key) + '</b>' + " cats spent " +
+                        '<b>' + d3.format(".1f")(d.target.__data__.value) + '</b>' + " days" + "<br>" + " in the shelter on average")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+        }
+
+        //intake reason, show averages
+        var intakeAverage = function() {
+            averageIntakeArray = Array.from(
+                averageByIntake,
+                ([key, value]) => ({key, value})
+            )
+
+            //x axis, average time spent in shelter
+            var x = d3.scaleLinear()
+                .domain([29, 48])
+                .range([0, width]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(-height).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x).tickSize(0));
+
+            //y axis, age
+            var y = d3.scaleBand()
+                .domain(["Owner Surrender", "Stray", "Public Assist", "Euthanasia Request"])
+                .range([height, 0]);
+
+            //make gridlines
+            svg.append("g")
+                .style("stroke-dasharray",("3,3"))
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(-width).tickSizeOuter(0));
+
+            svg.append("g")
+                .attr("class", "graphStuff")
+                .call(d3.axisLeft(y).tickSize(0));
+
+            //"z" axis, count
+            var z = d3.scaleSqrt()
+                .domain([9, 8780])
+                .range([3, 50]);
+
+            //circle sizing guide
+            var valuesToShow = [100, 1000, 8000]
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("circle")
+                .attr("class", "graphStuff")
+                .attr("cx", 60)
+                .attr("cy", function(d){ return 105 - z(d) } )
+                .attr("r", function(d){ return z(d)})
+                .style("fill", "none")
+                .attr("stroke", "black")
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("line")
+                .attr("class", "graphStuff")
+                .attr('x1', function(d){ return 50 + z(d) } )
+                .attr('x2', 120)
+                .attr('y1', function(d){ return 105 - z(d) } )
+                .attr('y2', function(d){ return 105 - z(d) } )
+                .attr('stroke', 'black')
+                .style('stroke-dasharray', ('2,2'))
+
+            d3.select("#legend").selectAll("circleLegend")
+                .data(valuesToShow)
+                .enter()
+                .append("text")
+                .attr("class", "graphStuff")
+                .attr('x', 120)
+                .attr('y', function(d){ return 105 - z(d) } )
+                .text( function(d){ return d } )
+                .style("font-size", 10)
+                .attr('alignment-baseline', 'middle')
+
+            //add x axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", 475)
+                .attr("y", 600)
+                .text("Average Time Spent in Shelter (Days)")
+
+            //add y axis label
+            svg.append("text")
+                .attr("class", "graphStuff")
+                .attr("text-anchor", "middle")
+                .attr("x", -90)
+                .attr("y", 300)
+                .attr("transform", "rotate(270, -90, 300)")
+                .text("Intake Reason")
+
+            //add nodes to graph
+            svg.append('g')
+                .attr("class", "graphStuff")
+                .selectAll("dot")
+                .data(averageIntakeArray)
+                .enter()
+                .append("circle")
+                .attr("class", "nodes")
+                .attr("cx", function (d) {return x(d.value)})
+                .attr("cy", function (d) {return y(d.key) + 68})
+                .attr("r", function (d) {return z(countByIntake.get(d.key))})
+                .style("fill", "#348fd9")
+                .style("opacity", "0.7")
+                .attr("stroke", "black")
+                .style("stroke-width", 1)
+                .on("mouseover", function(d) {
+                    tooltip.html('<b><u>' + d.target.__data__.key + '</u></b>' + "<br>" +
+                        '<b>' + countByIntake.get(d.target.__data__.key) + '</b>' + " cats spent " +
+                        '<b>' + d3.format(".1f")(d.target.__data__.value) + '</b>' + " days" + "<br>" + " in the shelter on average")
+                    return tooltip.style("visibility", "visible");
+                })
+                .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+        }
+
+        //call functions for each graph
+        colourAll();
+        d3.selectAll(".toggle").on("change", function(){
+            d3.selectAll(".graphStuff").remove();
+            if (d3.select('input[name="graphType"]:checked').node().value === "all") {
+                if (d3.select("#sort").property("value") == "age") {
+                    ageAll();
+                } else if (d3.select("#sort").property("value") == "colour") {
+                    colourAll();
+                } else if (d3.select("#sort").property("value") == "sex") {
+                    sexAll();
+                } else {
+                    intakeAll();
+                }
+            } else {
+                if (d3.select("#sort").property("value") == "age") {
+                    ageAverage();
+                } else if (d3.select("#sort").property("value") == "colour") {
+                    colourAverage();
+                } else if (d3.select("#sort").property("value") == "sex") {
+                    sexAverage();
+                } else {
+                    intakeAverage();
+                }
+            }
+        });
+    });
+
+</script>
+<style>
+    * {
+        font-family: sans-serif;
+    }
+
+    body {
+        background-color: #fff3e5;
+    }
+
+    fieldset {
+        background-color: #fff3e5;
+    }
+
+    a {
+        color: black;
+        background-color: white;
+        border: 1px solid #bbb;
+        font-size: 12px;
+        padding: 5px;
+        text-decoration: none;
+    }
+
+    #current {
+        background-color: #70addb;
+    }
+
+    .tick {
+        stroke: lightgray;
+        stroke-opacity: 0.1;
+        shape-rendering: crispEdges
+    }
+
+    #introduction {
+        float: top;
+        height: 75px;
+        margin: 0;
+        border: 1px solid #bbb;
+    }
+
+    #information {
+        float: right;
+        margin: 0;
+        border: 1px solid #bbb;
+    }
+
+    .nodes:hover{
+        stroke-width: 2px !important;
+        fill-opacity: 60% !important;
+    }
+</style>
+</html>

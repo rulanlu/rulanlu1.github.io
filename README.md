@@ -6,4 +6,4 @@ Data visualization created using D3.js that shows which factors impact cat adopt
 
 1. Clone the repository or download the files
 2. Navigate to the source code folder
-3. Open index.html (Double click or drag to browser)
+3. Open index.html using WebStorm or [VSCode Live Server] (https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer)
